@@ -1,0 +1,28 @@
+substitutions:
+  binary_1: "13" # yellow
+  capteur_fuite: "27" # blue -> red (and connect to GND)
+
+binary_sensor:
+  - platform: gpio
+    id: binary_1
+    pin: 
+      number: ${binary_1}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Binary 1"
+    filters:
+      - delayed_on_off: 30ms
+
+  - platform: gpio
+    id: capteur_fuite
+    pin: 
+      number: ${capteur_fuite}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Capteur fuite"
+    filters:
+      - delayed_on_off: 30ms

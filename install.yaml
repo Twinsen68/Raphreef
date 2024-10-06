@@ -1,0 +1,17 @@
+substitutions:
+  name: raphsreef
+  friendly_name: raphsreef
+packages:
+  twinsen68.raphsreef: github://twinsen68/raphsreef/raphsreef_config.yaml@main
+esphome:
+  name: ${name}
+  name_add_mac_suffix: false # or true
+  friendly_name: ${friendly_name}
+  
+api:
+  encryption:
+    key: tsHqLo48mLGhWo/qQQrZUFdsEwuZcC1/BlUOXWExy14=
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password

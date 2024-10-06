@@ -1,0 +1,16 @@
+substitutions:
+  # names
+  name: "raphsreef"
+  friendly_name: "raphsreef"
+  # App Version - Updated: 6/2024
+  app_version: "24.8.1"
+
+packages:
+  device_base: !include common/device_base.yaml
+  raphsreef: !include common/raphsreef.yaml
+  dallas: !include common/temperature_dallas.yaml
+  optical: !include common/optical.yaml
+  ezo_ph: !include common/ezo_ph.yaml
+  ezo_ec: !include common/ezo_ec.yaml
+  ezo_orp: !include common/ezo_orp.yaml
+

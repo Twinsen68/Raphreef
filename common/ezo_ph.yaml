@@ -1,0 +1,170 @@
+substitutions:
+  # pH circuit, who's address is 99
+  addPH: "99"
+  update_ph: "60s"
+
+api:
+  services: 
+    - service: ph_read_continous
+      then:
+      - repeat:
+          count: 60
+          then:
+          - button.press: read_ph
+          - delay: 1s
+    - service: ph_calibrate_mid_7
+      then:
+      - lambda: |-
+          id(ph_ezo).set_calibration_point_mid(7.00);
+    - service: ph_calibrate_low_4
+      then:
+      - lambda: |-
+          id(ph_ezo).set_calibration_point_low(4.00);
+    - service: ph_calibrate_high_10
+      then:
+      - lambda: |-
+          id(ph_ezo).set_calibration_point_high(10.00);
+    - service: ph_calibrate_high_1001
+      then:
+      - lambda: |-
+          id(ph_ezo).set_calibration_point_high(10.01);
+    # - service: ezo_ph_custom_command
+    #   variables:
+    #     command: string
+    #   then:
+    #     - lambda: |-
+    #         id(ph_ezo).send_custom('{{ command }}');
+
+esphome:
+  on_boot: 
+    priority: 800
+    then:
+      - button.press: send_selected_ph
+
+sensor:
+  # EZO Circuits (SCL/RX, SDA/TX)
+  # EZO Circuit - pH
+  - platform: ezo
+    icon: mdi:ph
+    name: "pH"
+    id: ph_ezo
+    address: ${addPH}
+    unit_of_measurement: ""
+    accuracy_decimals: 2
+    update_interval: "${update_ph}"
+    state_class: "measurement"
+    device_class: PH
+    on_custom: 
+      then:
+        - lambda: 
+            id(result_ph).publish_state(x);
+    on_calibration: 
+      then:
+        - lambda: 
+            id(result_ph).publish_state(x);
+    on_device_information: 
+      then:
+        - lambda: 
+            id(result_ph).publish_state(x);
+    on_slope: 
+      then:
+        - lambda: 
+            id(result_ph).publish_state(x);
+    on_t: 
+      then:
+        - lambda: 
+            id(result_ph).publish_state(x); 
+
+text_sensor:
+  # Selected Command Result - pH
+  - platform: template
+    name: pH - Valeur Commande
+    icon: mdi:data-matrix
+    id: result_ph
+    # disabled_by_default: true
+
+button:
+  # Read pH Probe
+  - platform: template
+    name: pH - Lire
+    id: read_ph
+    icon: mdi:read
+    entity_category: "Config"
+    # disabled_by_default: true
+    on_press:
+      then:
+        - lambda: |-
+            byte error;
+            id(ph_ezo).send_custom("R");
+            error = Wire.endTransmission();
+            if (error == 0) {
+              id(ph_ezo).send_custom("R");
+            }
+            else {
+              ESP_LOGW("custom_ph_read", "Pas de Capteur PH à cette adresse: ${addPH}!!");
+            }
+
+  # Send Selected EZO Command - pH
+  - platform: template
+    name: pH - Commande selectionée envoyée
+    id: send_selected_ph
+    entity_category: "Config"
+    # disabled_by_default: true
+    on_press:
+      then:
+        - lambda: |-
+            if (id(select_command_ph).state == "Lire") {
+              id(ph_ezo).send_custom("R");
+            }
+            // Get Device Firmware Version
+            if (id(select_command_ph).state == "Information") {
+              id(ph_ezo).get_device_information();
+            }
+            if (id(select_command_ph).state == "Status") {
+              id(ph_ezo).send_custom("Status");
+            }
+            if (id(select_command_ph).state == "Obtenir ° Précision") {
+              id(ph_ezo).get_slope();
+            }
+            if (id(select_command_ph).state == "Vérifier calibration") {
+              id(ph_ezo).get_calibration();
+            }  
+            if (id(select_command_ph).state == "Calibration @ moyenne = 7") {
+              id(ph_ezo).set_calibration_point_mid(7.00);
+            }
+            if (id(select_command_ph).state == "Calibration @ basse = 4") {
+              id(ph_ezo).set_calibration_point_low(4.00);
+            }
+            if (id(select_command_ph).state == "Calibration @ haute = 10") {
+              id(ph_ezo).set_calibration_point_high(10.00);
+            }
+            if (id(select_command_ph).state == "Effacer calibration") {
+              id(ph_ezo).clear_calibration();
+            }
+            // else {
+            //   id(ph_ezo).send_custom("R");
+            // }
+
+
+select:
+  - platform: template
+    name: pH - Command Select
+    id: select_command_ph
+    optimistic: true
+    # disabled_by_default: true
+    entity_category: "Config"
+    options:
+      - "Lire"
+      - "Information"
+      - "Status"
+      - "Obtenir ° Précision"
+      - "Vérifier calibration"
+      - "Calibration @ moyenne = 7"
+      - "Calibration @ basse = 4"
+      - "Calibration @ haute = 10"
+      - "Effacer calibration"
+    initial_option: "Vérifier calibration"
+    set_action:
+      - logger.log:
+          format: "Chosen option: %s"
+          args: ["x.c_str()"]

@@ -1,0 +1,131 @@
+substitutions:
+  dallasPin: "16"
+  update_temp: "60s"
+
+  # Calibration variables
+  # 0C using Ice Water; 100C using Boiling Water  
+  # Calibration Temp. 1
+  cal_0: "0.0"
+  cal_100: "100.0"
+  range_cool: "74"
+  range_warm: "82"
+
+# 18B20 sensor Pin
+one_wire:
+  - platform: gpio
+    pin: ${dallasPin}
+
+sensor:
+  # Temperature Probe 1
+  - platform: dallas_temp
+    id: temp_1
+    icon: mdi:thermometer-water
+    name: "Température"
+    state_class: "measurement"
+    device_class: "temperature"
+    update_interval: "${update_temp}"
+    filters:
+      - calibrate_linear:
+          method: least_squares
+          datapoints:
+            - 0.0 -> ${cal_0}
+            - 100.0 -> ${cal_100}
+    on_value: 
+      then:
+        - component.update: temp_range
+
+  # Calibration Temp. at 0C
+  - platform: template
+    name: Calibration à 0°C - Temp. 1
+    id: cal_0_sen
+    icon: mdi:thermometer-low
+    unit_of_measurement: "°C"
+    disabled_by_default: true
+    state_class: "measurement"
+    device_class: "temperature"
+    entity_category: "diagnostic"
+    lambda: |-
+      return {${cal_0}};
+
+  # Calibration Temp. at 100C
+  - platform: template
+    name: Calibration à 100°C - Temp. 1
+    id: cal_100_sen
+    icon: mdi:thermometer-high
+    unit_of_measurement: "°C"
+    disabled_by_default: true
+    state_class: "measurement"
+    device_class: "temperature"
+    entity_category: "diagnostic"
+    lambda: |-
+      return {${cal_100}};
+
+binary_sensor:
+  - platform: template
+    name: Temperature idéal
+    id: ideal_temp
+    icon: mdi:thermometer-check
+    lambda: |-
+      if (id(temp_range).state == "OK") {
+        return true;
+      } else {
+        return false;
+      }
+
+text_sensor:
+  # Temperature Range 1
+  - platform: template
+    name: Gamme Température
+    id: temp_range
+    icon: mdi:thermometer-alert
+    update_interval: "${update_temp}"
+    lambda: |-
+      if(id(temp_1).state <= id(range_cool).state) {
+        return {"Froid"};
+      }
+      if(id(temp_1).state < id(range_warm).state && id(temp_1).state > id(range_cool).state) {
+        return {"Optimal"};
+      }
+      if(id(temp_1).state >= id(range_warm).state) {
+        return {"Chaud"};
+      }     
+      else {
+        return {"Inconnu"};
+      }  
+
+number:
+  # Temperature 1 when Cool
+  - platform: template
+    name: "Temp. lim. froide"
+    id: range_cool
+    icon: mdi:thermometer-low
+    optimistic: true
+    mode: box
+    min_value: 0.0
+    max_value: 100.0
+    step: 0.5
+    restore_value: True
+    initial_value: ${range_cool}
+    entity_category: "Config"
+    device_class: "temperature"
+    on_value: 
+      then:
+        - component.update: temp_range
+
+  # Temperature 1 when Warm
+  - platform: template
+    name: "Temp. lim. chaude"
+    icon: mdi:thermometer-high
+    id: range_warm
+    optimistic: true
+    mode: box
+    min_value: 0.0
+    max_value: 100.0
+    step: 0.5
+    restore_value: True
+    initial_value: ${range_warm}
+    entity_category: "Config"
+    device_class: "temperature"
+    on_value: 
+      then:
+        - component.update: temp_range

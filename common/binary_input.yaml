@@ -1,0 +1,25 @@
+# Board rev 1.2
+substitutions:
+  binarypin1: "34" # Jaune
+  binarypin2: "35" # bleu
+
+binary_sensor:
+  - platform: gpio
+    id: binary_pin_1
+    name: Capteur fuite
+    pin: 
+      number: ${binarypin1}
+      mode:
+        input: true
+    filters:
+      - delayed_on_off: 30ms
+
+  - platform: gpio
+    id: binary_pin_2
+    name: Binary Sensor 2
+    pin: 
+      number: ${binarypin2}
+      mode:
+        input: true
+    filters:
+      - delayed_on_off: 30ms
