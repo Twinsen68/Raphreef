@@ -80,14 +80,56 @@ binary_sensor:
       then:
         - component.update: water_level  # Met à jour l'état global du niveau d'eau
 
-  # Détection d'anomalie basée sur le volume d'eau ajouté
+  # Anomalie : Volume excessif ajouté
   - platform: template
-    name: "Anomalie volume ajouté"
+    name: "Anomalie : Volume excessif"  # Déclenche une alerte si plus de 10L sont ajoutés
     id: volume_anomaly
     lambda: |-
-      float volume_day = id(volume_added).state;  # Récupère le volume ajouté en litres
-      return (volume_day > 50.0);  # Considère une anomalie si > 50L ajoutés en une journée
-    device_class: problem  # Classé comme problème dans Home Assistant
+      static float session_volume = 0;  // Volume ajouté durant une session
+      if (id(electrovanne).state) {
+        session_volume += (id(flow_pulses).state / ${pulses_per_litre});  // Calcul du volume ajouté
+        if (session_volume > 10.0) {  // Si le volume dépasse 10L
+          if (id(auto_close_enabled).state) {  // Si l'auto-fermeture est activée
+            id(electrovanne).turn_off();  // Ferme automatiquement l'électrovanne
+          }
+          return true;  // Retourne une anomalie
+        }
+      } else {
+        session_volume = 0;  // Réinitialise le volume si la vanne est fermée
+      }
+      return false;  // Pas d'anomalie
+    device_class: problem  # Classifié comme un problème dans Home Assistant
+
+  # Anomalie : Vanne ouverte sans débit
+  - platform: template
+    name: "Anomalie : Vanne ouverte sans débit"  # Alerte si la vanne est ouverte mais qu'aucun débit n'est détecté
+    id: no_flow_anomaly
+    lambda: |-
+      static unsigned long anomaly_start = 0;  // Temps de début de l'anomalie
+      if (id(electrovanne).state && (id(flow_pulses).state == 0)) {
+        if (anomaly_start == 0) {
+          anomaly_start = millis();  // Initialisation du compteur
+        }
+        if ((millis() - anomaly_start) > 10000) {  // Tolérance de 10 secondes
+          return true;  // Déclenche une anomalie
+        }
+      } else {
+        anomaly_start = 0;  // Réinitialise si débit détecté ou vanne fermée
+      }
+      return false;  // Pas d'anomalie
+    device_class: problem  # Classifié comme un problème
+
+  # Anomalie : Débit détecté avec vanne fermée
+  - platform: template
+    name: "Anomalie : Débit avec vanne fermée"  # Alerte si un débit est détecté alors que la vanne est fermée
+    id: flow_with_closed_valve
+    lambda: |-
+      if (!id(electrovanne).state && (id(flow_pulses).state > 0)) {
+        return true;  // Déclenche une anomalie
+      }
+      return false;  // Pas d'anomalie
+    device_class: problem  # Classifié comme un problème
+
 
 sensor:
   # Définition des capteurs analogiques ou numériques
@@ -183,5 +225,22 @@ button:
             id(volume_total).publish_state(0);  # Réinitialise le volume total
             id(volume_week).publish_state(0);  # Réinitialise le volume hebdomadaire
             ESP_LOGI("reset", "Tous les volumes ont été réinitialisés !");
+
+  # Active ou désactive la fermeture automatique de l'électrovanne
+  - platform: template
+    name: "Activer/Désactiver Auto-Fermeture"  # Bouton pour gérer l'option
+    id: auto_close_toggle
+    on_press:
+      then:
+        - lambda: |-
+            id(auto_close_enabled).publish_state(!id(auto_close_enabled).state);  // Change l'état
+            ESP_LOGI("auto_close", "État changé : %s", id(auto_close_enabled).state ? "Activé" : "Désactivé");
+
+globals:
+  # Variable pour gérer l'état de l'auto-fermeture de l'électrovanne
+  - id: auto_close_enabled  # Identifiant unique de la variable
+    type: bool  # Type de la variable (booléen : vrai ou faux)
+    restore_value: true  # La valeur est sauvegardée et restaurée après un redémarrage
+    initial_value: "true"  # La variable est initialisée à "true" par défaut
 
 
