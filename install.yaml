@@ -1,8 +1,21 @@
 substitutions:
   name: raphsreef
   friendly_name: raphsreef
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+#dashboard_import:
+#  package_import_url: github://Twinsen68/raphreef/raphsreef_config.yaml@main
+#  import_full_config: ${import_config}
+
 packages:
-  twinsen68.raphsreef: github://twinsen68/raphsreef/raphsreef_config.yaml@main
+  twinsen68.raphreef:
+    url: https://github.com/twinsen68/raphreef
+    file: raphsreef_config.yaml
+
 esphome:
   name: ${name}
   name_add_mac_suffix: false # or true

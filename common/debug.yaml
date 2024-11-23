@@ -1,7 +1,21 @@
 debug:
   update_interval: 5s
 
+text_sensor:
+  - platform: debug
+    device:
+      name: "Device Info"
+    reset_reason:
+      name: "Reset Reason"
+
 sensor:
+  - platform: wifi_signal
+    name: "Signal Wi-Fi (dB)"  # Force du signal en dB
+    id: wifi_signal_db
+    update_interval: 60s  # Mettre à jour chaque minute
+    icon: mdi:wifi
+    unit_of_measurement: "dB"
+
   - platform: debug
     free:
       name: "Heap Free"
@@ -10,9 +24,53 @@ sensor:
     loop_time:
       name: "Loop Time"
 
-text_sensor:
-  - platform: debug
-    device:
-      name: "Device Info"
-    reset_reason:
-      name: "Reset Reason"
+binary_sensor:
+  - platform: status  # Suivi de l'état général du périphérique ESPHome
+    name: "Statut ESPHome"  # Nom affiché dans l'interface utilisateur
+
+  - platform: template
+    name: "Statut Wi-Fi"
+    id: wifi_status
+    lambda: |-
+      if (id(wifi_signal_db).state > -80) {
+        return true;  // Bon signal
+      } else {
+        return false;  // Signal faible ou déconnecté
+      }
+    device_class: connectivity
+
+automation:
+  # Notification lorsque le Wi-Fi est perdu
+  - alias: "Wi-Fi déconnecté"
+    trigger:
+      - platform: wifi
+        signal_strength: below
+        threshold: -80  # Limite pour un mauvais signal
+    action:
+      - logger.log: "Attention ! Signal Wi-Fi faible ou déconnecté."
+      - text_sensor.template.publish:
+          id: wifi_status_text
+          state: "Déconnecté"
+
+  # Notification lorsque le Wi-Fi revient
+  - alias: "Wi-Fi reconnecté"
+    trigger:
+      - platform: wifi
+        signal_strength: above
+        threshold: -80  # Retour d'un bon signal
+    action:
+      - logger.log: "Wi-Fi reconnecté avec succès."
+      - text_sensor.template.publish:
+          id: wifi_status_text
+          state: "Connecté"      
+      
+interval:
+  - interval: 5min  # Vérifie toutes les 5 minutes
+    then:
+      - if:
+          condition:
+            wifi.connected: false  # Déclenche si le Wi-Fi est déconnecté
+          then:
+            - logger.log: "Wi-Fi non connecté. Redémarrage en cours..."  # Log l'événement
+            - delay: 30s  # Attente avant redémarrage
+            - reboot:  # Redémarrage de l'ESP
