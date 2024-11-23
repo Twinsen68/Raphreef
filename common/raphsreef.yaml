@@ -37,3 +37,26 @@ time:
   # Synchronisation horaire pour la gestion des cycles 24h
   - platform: sntp
     id: sntp_time
+
+automation:
+  # Notification lorsque le Wi-Fi est déconnecté
+  - alias: "Wi-Fi déconnecté"
+    trigger:
+      - platform: wifi  # Déclencheur Wi-Fi de ESPHome
+        event: disconnected  # Événement : déconnexion
+    action:
+      - logger.log: "Attention ! Wi-Fi déconnecté."  # Journal de l'événement
+      - text_sensor.template.publish:
+          id: wifi_status_text  # Mise à jour du statut
+          state: "Déconnecté"
+
+  # Notification lorsque le Wi-Fi est reconnecté
+  - alias: "Wi-Fi reconnecté"
+    trigger:
+      - platform: wifi  # Déclencheur Wi-Fi de ESPHome
+        event: connected  # Événement : connexion réussie
+    action:
+      - logger.log: "Wi-Fi reconnecté avec succès."  # Journal de l'événement
+      - text_sensor.template.publish:
+          id: wifi_status_text
+          state: "Connecté"
