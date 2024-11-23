@@ -211,12 +211,25 @@ text_sensor:
         - component.update: sensor_tds
         - component.update: sensor_specific_gravity
 
-  # Selected Command Result - Conductivity
+  # État de la densité
   - platform: template
-    name: EC - Valeur Commande
-    icon: mdi:data-matrix
-    id: result_ec
-    # disabled_by_default: true
+    name: "Diagnostic densité"
+    id: density_status
+    lambda: |-
+      float density = id(sensor_specific_gravity).state;
+
+      if (density < 1.021) return {"DANGER : Trop faible (<1.021)"};
+      if (density > 1.026) return {"DANGER : Trop élevée (>1.026)"};
+
+      if (density >= 1.021 && density <= 1.022) return {"Acceptable : Faible (1.021-1.022)"};
+      if (density >= 1.025 && density <= 1.026) return {"Acceptable : Élevée (1.025-1.026)"};
+
+      if (density >= 1.023 && density <= 1.025) return {"Correcte : Bonne (1.023-1.025)"};
+      if (density == 1.024) return {"Optimale : Parfaite (1.024)"};
+
+      return {"Inconnu"};
+    icon: mdi:water
+
 
 button:
   # Read Conductivity Probe
@@ -352,3 +365,14 @@ select:
       - logger.log:
           format: "Chosen option: %s"
           args: ["x.c_str()"]
+
+binary_sensor:
+  # Signalisation d'une densité dangereuse
+  - platform: template
+    name: "Densité dangereuse"
+    id: density_danger
+    lambda: |-
+      float density = id(sensor_specific_gravity).state;
+      return (density < 1.021 || density > 1.026);  // Retourne vrai si hors des limites acceptables
+    device_class: problem
+

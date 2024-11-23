@@ -54,26 +54,78 @@ sensor:
     update_interval: "${update_ph}"
     state_class: "measurement"
     device_class: PH
-    on_custom: 
+    on_value:
+      then:
+        - lambda: |-
+            // Met à jour la valeur min sur 24h
+            if (id(ph_min_24h).state > x || isnan(id(ph_min_24h).state)) {
+              id(ph_min_24h).publish_state(x);
+            }
+            // Met à jour la valeur max sur 24h
+            if (id(ph_max_24h).state < x || isnan(id(ph_max_24h).state)) {
+              id(ph_max_24h).publish_state(x);
+            }
+    on_custom:
       then:
         - lambda: 
             id(result_ph).publish_state(x);
-    on_calibration: 
+    on_calibration:
       then:
         - lambda: 
             id(result_ph).publish_state(x);
-    on_device_information: 
+    on_device_information:
       then:
         - lambda: 
             id(result_ph).publish_state(x);
-    on_slope: 
+    on_slope:
       then:
         - lambda: 
             id(result_ph).publish_state(x);
-    on_t: 
+    on_t:
       then:
         - lambda: 
-            id(result_ph).publish_state(x); 
+            id(result_ph).publish_state(x);
+
+  # pH Minimum sur 24h
+  - platform: template
+    name: "pH Minimum - 24h"
+    id: ph_min_24h
+    unit_of_measurement: ""
+    accuracy_decimals: 2
+    icon: mdi:arrow-down
+    state_class: measurement
+    lambda: |-
+      return NAN;
+
+  # pH Maximum sur 24h
+  - platform: template
+    name: "pH Maximum - 24h"
+    id: ph_max_24h
+    unit_of_measurement: ""
+    accuracy_decimals: 2
+    icon: mdi:arrow-up
+    state_class: measurement
+    lambda: |-
+      return NAN;
+
+binary_sensor:
+  # État critique du pH
+  - platform: template
+    name: "pH Critique"
+    id: ph_critical
+    lambda: |-
+      float ph = id(ph_ezo).state;
+      return (ph < 7.8 || ph > 8.4);  // Retourne vrai si le pH est hors plage.
+    device_class: problem
+
+  # État optimal du pH
+  - platform: template
+    name: "pH Optimal"
+    id: ph_optimal
+    lambda: |-
+      float ph = id(ph_ezo).state;
+      return (ph >= 7.8 && ph <= 8.4);  // Retourne vrai si le pH est dans la plage optimale.
+    device_class: safety
 
 text_sensor:
   # Selected Command Result - pH
@@ -168,3 +220,11 @@ select:
       - logger.log:
           format: "Chosen option: %s"
           args: ["x.c_str()"]
+
+interval:
+  # Réinitialisation des valeurs min/max pH toutes les 24 heures
+  - interval: 24h
+    then:
+      - lambda: |-
+          id(ph_min_24h).publish_state(NAN);
+          id(ph_max_24h).publish_state(NAN);

@@ -60,38 +60,61 @@ sensor:
     lambda: |-
       return {${cal_100}};
 
-binary_sensor:
+  # Température extérieure (capteur virtuel pour simuler les saisons)
   - platform: template
-    name: Temperature idéal
-    id: ideal_temp
-    icon: mdi:thermometer-check
+    name: "Température extérieure"
+    id: outdoor_temperature
+    unit_of_measurement: "°C"
     lambda: |-
-      if (id(temp_range).state == "OK") {
-        return true;
-      } else {
-        return false;
+      return 25.0;  // Modifiez cette valeur si un capteur réel est disponible
+
+
+binary_sensor:
+  # Température critique (hors de 22°C à 30°C)
+  - platform: template
+    name: "Température critique"
+    id: critical_temperature
+    lambda: |-
+      float temp = id(water_temperature).state;
+      return (temp < 22.0 || temp > 30.0);  // Vrai si hors des limites critiques
+    device_class: problem
+
+  # Température optimale (selon la saison)
+  - platform: template
+    name: "Température optimale"
+    id: optimal_temperature
+    lambda: |-
+      float temp = id(water_temperature).state;
+      float outdoor_temp = id(outdoor_temperature).state;
+
+      if (outdoor_temp > 20.0) {  // Saison chaude
+        return (temp >= 24.0 && temp <= 27.0);
+      } else {  // Saison froide
+        return (temp >= 23.0 && temp <= 24.0);
       }
+    device_class: safety
+
 
 text_sensor:
-  # Temperature Range 1
   - platform: template
-    name: Gamme Température
-    id: temp_range
-    icon: mdi:thermometer-alert
-    update_interval: "${update_temp}"
+    name: "Diagnostic température"
+    id: temperature_status
     lambda: |-
-      if(id(temp_1).state <= id(range_cool).state) {
-        return {"Froid"};
+      float temp = id(water_temperature).state;
+      float outdoor_temp = id(outdoor_temperature).state;
+
+      if (temp < 22.0) return {"DANGER : Trop froid (<22°C)"};
+      if (temp > 30.0) return {"DANGER : Trop chaud (>30°C)"};
+
+      if (outdoor_temp > 20.0) {
+        if (temp >= 24.0 && temp <= 27.0) return {"OK : Température optimale (saison chaude)"};
+        return {"Alerte : Hors plage saison chaude (24-27°C)"};
+      } else {
+        if (temp >= 23.0 && temp <= 24.0) return {"OK : Température optimale (saison froide)"};
+        return {"Alerte : Hors plage saison froide (23-24°C)"};
       }
-      if(id(temp_1).state < id(range_warm).state && id(temp_1).state > id(range_cool).state) {
-        return {"Optimal"};
-      }
-      if(id(temp_1).state >= id(range_warm).state) {
-        return {"Chaud"};
-      }     
-      else {
-        return {"Inconnu"};
-      }  
+    icon: mdi:thermometer-alert
+
 
 number:
   # Temperature 1 when Cool

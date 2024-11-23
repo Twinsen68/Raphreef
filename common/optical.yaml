@@ -1,41 +1,74 @@
 substitutions:  
-  # Optical_1
-  opticalLowPin: "33" # yellow
-  opticalHighPin: "32" # blue
+  # Définit les variables substituables utilisées dans ce fichier.
 
-  # Water Level
-  update_water: "60s"
+  # Pins des capteurs optiques
+  opticalLowPin: "33"  # GPIO pour le capteur optique bas
+  opticalHighPin: "32"  # GPIO pour le capteur optique haut
+
+  # Fréquence de mise à jour
+  update_water: "60s"  # Intervalle de mise à jour des capteurs optiques
+
+  # Capteur de débit
+  flowSensorPin: "26"  # GPIO pour le capteur de débit
+  pulses_per_litre: "450"  # Nombre d'impulsions correspondant à un litre
+  update_interval: "10s"  # Intervalle de mise à jour des données de débit
 
 esphome:
+  # Configuration ESPHome
   on_boot: 
-      priority: 200
-      then:
-        - component.update: water_level
+    priority: 200  # Priorité de démarrage
+    then:
+      - component.update: water_level  # Met à jour l'état du niveau d'eau au démarrage
+
+switch:
+  # Switch pour contrôler l'électrovanne
+  - platform: output
+    name: "Électrovanne"
+    output: relais_valve
+    id: electrovanne
+    icon: mdi:valve
+
+output:
+  - platform: gpio
+    pin: 25  # GPIO utilisé pour activer/désactiver l'électrovanne
+    id: relais_valve
 
 binary_sensor:
-  # Optical Sensor - LOW (yellow)
+  # Définition des capteurs binaires
+
+  # Capteur optique bas
   - platform: gpio
-    id: os_low
-    # disabled_by_default: true
+    id: os_low  # Identifiant unique pour le capteur bas
     pin: 
-      number: ${opticalLowPin}
-      inverted: true
+      number: ${opticalLowPin}  # GPIO spécifié dans les substitutions
+      inverted: true  # Inversion de la logique du signal (haut = actif)
       mode:
         input: true
-        pullup: true
-    name: "Capteur niveau : Bas"
+        pullup: true  # Active le pull-up interne pour une meilleure stabilité
+    name: "Capteur niveau : Bas"  # Nom visible dans l'interface utilisateur
     filters:
-      - delayed_on_off: 30ms
+      - delayed_on_off: 30ms  # Anti-rebond pour éviter les faux positifs
     on_state:
       then:
-        component.update: water_level
+        # Met à jour l'état global du niveau d'eau
+        - component.update: water_level  
+        # Active ou désactive l'électrovanne selon l'état du capteur
+        - if:
+            condition:
+              binary_sensor.is_off: os_low  # Si le niveau est trop bas
+            then:
+              - switch.turn_on: electrovanne  # Active l'électrovanne
+        - if:
+            condition:
+              binary_sensor.is_on: os_low  # Si le niveau est corrigé
+            then:
+              - switch.turn_off: electrovanne  # Désactive l'électrovanne
 
-  # Optical Sensor - HIGH (blue)
+  # Capteur optique haut
   - platform: gpio
-    id: os_high
-    # disabled_by_default: true
+    id: os_high  # Identifiant unique pour le capteur haut
     pin: 
-      number: ${opticalHighPin}
+      number: ${opticalHighPin}  # GPIO spécifié dans les substitutions
       inverted: true
       mode:
         input: true
@@ -45,27 +78,110 @@ binary_sensor:
       - delayed_on_off: 30ms
     on_state:
       then:
-        component.update: water_level
+        - component.update: water_level  # Met à jour l'état global du niveau d'eau
+
+  # Détection d'anomalie basée sur le volume d'eau ajouté
+  - platform: template
+    name: "Anomalie volume ajouté"
+    id: volume_anomaly
+    lambda: |-
+      float volume_day = id(volume_added).state;  # Récupère le volume ajouté en litres
+      return (volume_day > 50.0);  # Considère une anomalie si > 50L ajoutés en une journée
+    device_class: problem  # Classé comme problème dans Home Assistant
+
+sensor:
+  # Définition des capteurs analogiques ou numériques
+
+  # Mesure des impulsions du capteur de débit
+  - platform: pulse_counter
+    pin: ${flowSensorPin}  # GPIO pour le capteur de débit
+    name: "Impulsions du capteur de débit"
+    id: flow_pulses  # Identifiant unique
+    update_interval: ${update_interval}  # Fréquence de mise à jour
+    unit_of_measurement: "pulses"  # Unité affichée
+    filters:
+      - multiply: 1.0  # Applique un multiplicateur (aucune transformation ici)
+
+  # Calcul du volume d'eau ajouté (en litres)
+  - platform: template
+    name: "Volume d'eau ajouté"
+    id: volume_added  # Identifiant unique
+    unit_of_measurement: "L"
+    icon: mdi:water  # Icône utilisée
+    update_interval: ${update_interval}
+    lambda: |-
+      return (id(flow_pulses).state / ${pulses_per_litre});  # Convertit impulsions en litres
+
+  # Calcul du volume ajouté par jour
+  - platform: integration
+    name: "Volume ajouté - Jour"
+    sensor: volume_added  # Source des données
+    unit_of_measurement: "L"
+    icon: mdi:calendar  # Icône pour une vue journalière
+    time_unit: d  # Accumule les valeurs sur une base quotidienne
+
+  # Calcul manuel du volume ajouté par semaine
+  - platform: template
+    name: "Volume ajouté - Semaine"
+    id: volume_week
+    unit_of_measurement: "L"
+    icon: mdi:calendar-week
+    lambda: |-
+      static float weekly_volume = 0;  # Variable statique pour stocker les données
+      weekly_volume += id(volume_added).state;  # Incrémente le volume hebdomadaire
+      return weekly_volume;  # Retourne le cumul
+
+  # Volume total ajouté depuis le démarrage
+  - platform: template
+    name: "Volume ajouté - Total"
+    id: volume_total
+    unit_of_measurement: "L"
+    icon: mdi:water-plus
+    lambda: |-
+      static float total_volume = 0;  # Variable pour stocker le total
+      total_volume += id(volume_added).state;  # Ajoute le volume à chaque mise à jour
+      return total_volume;  # Retourne le total
 
 text_sensor:
-  # Water Level
+  # État global du niveau d'eau
   - platform: template
-    icon: mdi:waves-arrow-up
+    icon: mdi:waves-arrow-up  # Icône pour illustrer le niveau d'eau
     name: "Niveau d'eau"
     id: water_level
     update_interval: "${update_water}"
     lambda: |-
       if(id(os_high).state == true && id(os_low).state == true) {
-        // Water Level is High
-        return {"Trop haut"};
+        return {"Trop haut"};  # Les deux capteurs actifs
       }
       if(id(os_high).state == false && id(os_low).state == false) {
-        // Water Level is Low
-        return {"Trop bas"};
+        return {"Trop bas"};  # Aucun capteur actif
       }
       if(id(os_high).state == false && id(os_low).state == true) {
-        // Water Level is Normal
-        return {"Optimal"};
+        return {"Optimal"};  # Niveau correct
       } else {
-        return {"Inconnu ou erreur"};
+        return {"Inconnu ou erreur"};  # État indéterminé
+
+  - platform: template
+    name: "État de l'électrovanne"
+    lambda: |-
+      if (id(electrovanne).state) {
+        return {"Active"};  // Si la vanne est ouverte
+      } else {
+        return {"Inactive"};  // Si la vanne est fermée
       }
+    icon: mdi:valve
+
+button:
+  # Réinitialise tous les volumes (journaliers, hebdomadaires, totaux)
+  - platform: template
+    name: "Réinitialiser tous les volumes"
+    id: reset_all_volumes
+    on_press:
+      then:
+        - lambda: |-
+            id(flow_pulses).publish_state(0);  # Réinitialise les impulsions
+            id(volume_total).publish_state(0);  # Réinitialise le volume total
+            id(volume_week).publish_state(0);  # Réinitialise le volume hebdomadaire
+            ESP_LOGI("reset", "Tous les volumes ont été réinitialisés !");
+
+
