@@ -33,7 +33,7 @@ wifi:
   password: "Votre_Mot_De_Passe"  # Mot de passe du réseau principal
 
   ap:
-    ssid: "AquapiGPT_Recovery"  # Nom du réseau Access Point en mode secours
+    ssid: "Raphreef_Recovery"  # Nom du réseau Access Point en mode secours
     password: "MotDePasse_AP"  # Mot de passe pour l'accès direct
 
 captive_portal:
