@@ -38,31 +38,6 @@ binary_sensor:
         return false;  // Signal faible ou déconnecté
       }
     device_class: connectivity
-
-#automation:
-#  # Notification lorsque le Wi-Fi est perdu
-#  - alias: "Wi-Fi déconnecté"
-#    trigger:
-#      - platform: wifi
-#        signal_strength: below
-#        threshold: -80  # Limite pour un mauvais signal
-#    action:
-#      - logger.log: "Attention ! Signal Wi-Fi faible ou déconnecté."
-#      - text_sensor.template.publish:
-#          id: wifi_status_text
-#          state: "Déconnecté"
-#
-#  # Notification lorsque le Wi-Fi revient
-#  - alias: "Wi-Fi reconnecté"
-#    trigger:
-#      - platform: wifi
-#        signal_strength: above
-#        threshold: -80  # Retour d'un bon signal
-#    action:
-#      - logger.log: "Wi-Fi reconnecté avec succès."
-#      - text_sensor.template.publish:
-#          id: wifi_status_text
-#          state: "Connecté"      
       
 interval:
   - interval: 5min  # Vérifie toutes les 5 minutes
