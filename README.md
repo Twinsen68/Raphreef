@@ -344,5 +344,3 @@ action:
       message: "Alerte : Température critique détectée dans l'aquarium !
 
 ### **2. Vérification des Entités**
-1. Testez chaque entité depuis Home Assistant pour vous assurer qu’elles fonctionnent correctement :
-2. Consultez les données des capteurs dans les logs Home Assistant ou via Lovelace.
