@@ -18,16 +18,7 @@ esphome:
   project:
     name: twinsen68.raphsreef
     version: "${app_version}"
-
-esp32:
-  board: esp32dev
-  framework:
-    type: arduino
-
-dashboard_import:
-  package_import_url: github://Twinsen68/raphreef/raphsreef_config.yaml@main
-  import_full_config: ${import_config}
-
+    
 # Enable logging
 logger:
   level: "${logger}"
@@ -37,8 +28,13 @@ api:
 ota:
   - platform: esphome
 
-wifi: 
+wifi:
+  ssid: "Votre_SSID"  # Réseau principal
+  password: "Votre_Mot_De_Passe"  # Mot de passe du réseau principal
+
   ap:
+    ssid: "AquapiGPT_Recovery"  # Nom du réseau Access Point en mode secours
+    password: "MotDePasse_AP"  # Mot de passe pour l'accès direct
 
 captive_portal:
 
@@ -165,3 +161,22 @@ button:
     name: "Eteindre"
     disabled_by_default: true
     id: shutdown_button
+
+time:
+  - platform: sntp
+    id: sntp_time  # Identifiant SNTP pour les automatisations
+    servers:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+    timezone: "Europe/Paris"  # Fuseau horaire
+
+interval:
+  - interval: 5min  # Vérifie toutes les 5 minutes
+    then:
+      - if:
+          condition:
+            wifi.connected: false  # Déclenche si le Wi-Fi est déconnecté
+          then:
+            - logger.log: "Wi-Fi non connecté. Redémarrage en cours..."  # Log l'événement
+            - delay: 30s  # Attente avant redémarrage
+            - reboot:  # Redémarrage de l'ESP

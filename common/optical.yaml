@@ -28,6 +28,19 @@ switch:
     id: electrovanne
     icon: mdi:valve
 
+  - platform: template
+    name: "Contrôle manuel de l'électrovanne"  # Nom visible dans Home Assistant
+    id: manual_valve_control  # Identifiant unique pour le contrôle manuel
+    optimistic: true  # Permet d'assurer la synchronisation de l'état dans Home Assistant
+    turn_on_action:
+      - switch.turn_on: electrovanne  # Ouvre la vanne
+      - lambda: |-
+          ESP_LOGI("manual_valve", "Électrovanne ouverte manuellement.");
+    turn_off_action:
+      - switch.turn_off: electrovanne  # Ferme la vanne
+      - lambda: |-
+          ESP_LOGI("manual_valve", "Électrovanne fermée manuellement.");
+
 output:
   - platform: gpio
     pin: 25  # GPIO utilisé pour activer/désactiver l'électrovanne
@@ -213,6 +226,16 @@ text_sensor:
       }
     icon: mdi:valve
 
+  - platform: template
+    name: "Mode de contrôle de l'électrovanne"  # Indique le mode actif
+    lambda: |-
+      if (id(auto_close_enabled).state) {
+        return {"Automatique"};  // Mode automatique activé
+      } else {
+        return {"Manuel"};  // Mode manuel activé
+      }
+    icon: mdi:toggle-switch
+
 button:
   # Réinitialise tous les volumes (journaliers, hebdomadaires, totaux)
   - platform: template
@@ -243,4 +266,60 @@ globals:
     restore_value: true  # La valeur est sauvegardée et restaurée après un redémarrage
     initial_value: "true"  # La variable est initialisée à "true" par défaut
 
+  - id: manual_override_timeout  # Identifiant unique pour la variable.
+    type: unsigned long  # Type de données : durée en millisecondes.
+    restore_value: no  # Ne pas restaurer après redémarrage (pour éviter des incohérences).
+    initial_value: "0"  # Initialise la variable à zéro.
 
+select:
+  - platform: template
+    name: "Durée avant retour auto"  # Nom affiché dans Home Assistant.
+    id: auto_reset_duration  # Identifiant utilisé dans le code ESPHome.
+    optimistic: true  # Synchronisation sans retour d'état direct de l'appareil.
+    options:
+      - "10 minutes"  # Option pour 10 minutes.
+      - "30 minutes"  # Option pour 30 minutes.
+      - "1 heure"  # Option pour 1 heure.
+      - "6 heures"  # Option pour 6 heures.
+      - "1 jour"  # Option pour 1 jour.
+      - "2 jours"  # Option pour 2 jours.
+    initial_option: "30 minutes"  # Option par défaut.
+    set_action:
+      - logger.log:
+          format: "Durée sélectionnée pour retour automatique : %s"  # Log de débogage.
+          args: ["x.c_str()"]  # Affiche la valeur sélectionnée.
+
+interval:
+  - interval: 1s  # Vérification de l'état toutes les secondes.
+    then:
+      - lambda: |-
+          static unsigned long override_start_time = 0;  // Heure de début de la désactivation manuelle.
+          static unsigned long duration = 0;  // Durée en millisecondes pour l'override.
+
+          // 1. Convertir la durée sélectionnée en millisecondes.
+          if (id(auto_reset_duration).state == "10 minutes") {
+            duration = 600000;  // 10 minutes.
+          } else if (id(auto_reset_duration).state == "30 minutes") {
+            duration = 1800000;  // 30 minutes.
+          } else if (id(auto_reset_duration).state == "1 heure") {
+            duration = 3600000;  // 1 heure.
+          } else if (id(auto_reset_duration).state == "6 heures") {
+            duration = 21600000;  // 6 heures.
+          } else if (id(auto_reset_duration).state == "1 jour") {
+            duration = 86400000;  // 1 jour.
+          } else if (id(auto_reset_duration).state == "2 jours") {
+            duration = 172800000;  // 2 jours.
+
+          // 2. Si l'électrovanne est désactivée manuellement, démarrez le chronomètre.
+          if (!id(electrovanne).state && id(manual_override_timeout) == 0) {
+            override_start_time = millis();  // Enregistre l'heure actuelle.
+            id(manual_override_timeout) = duration;  // Définit la durée de l'override.
+          }
+
+          // 3. Vérifiez si la durée d'override est écoulée.
+          if (id(manual_override_timeout) > 0 &&
+              (millis() - override_start_time) >= id(manual_override_timeout)) {
+            id(manual_override_timeout) = 0;  // Réinitialise la variable.
+            id(auto_close_enabled).publish_state(true);  // Réactive le mode automatique.
+            ESP_LOGI("auto_reset", "Retour automatique en mode automatique.");
+          }
