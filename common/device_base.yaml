@@ -1,102 +1,94 @@
-substitutions:
+substitutions:  # Définit des variables réutilisables pour simplifier la configuration.
   # Import Config
-  import_config: "true"
+  import_config: "true"  # Active ou désactive l'importation de configurations externes.
   # Logger Level - Can use VERBOSE for more information in Logs
-  logger: "DEBUG"
+  logger: "DEBUG"  # Définit le niveau de verbosité du journal de débogage.
 
   # I2C pins
-  sdaPin: "21" # yellow/TX PMP-green
-  sclPin: "22" # blue/RX PMP-white
+  sdaPin: "21"  # Broche SDA pour le bus I2C.
+  sclPin: "22"  # Broche SCL pour le bus I2C.
 
-esphome:
-  min_version: 2024.6.0
-  name: "${name}"
-  friendly_name: "${friendly_name}"
-  # Automatically add the mac address to the name
-  name_add_mac_suffix: true
-  comment: "Raph's Reef ESP32 - Moniteur d'aquarium"
+esphome:  # Déclare les paramètres globaux d'ESPHome.
+  min_version: 2024.6.0  # Version minimale d'ESPHome requise pour cette configuration.
+  name: "${name}"  # Nom du périphérique basé sur une substitution.
+  friendly_name: "${friendly_name}"  # Nom convivial pour Home Assistant.
+  name_add_mac_suffix: true  # Ajoute automatiquement une partie de l'adresse MAC pour éviter les conflits.
+  comment: "Raph's Reef ESP32 - Moniteur d'aquarium"  # Commentaire décrivant l'usage du périphérique.
   project:
-    name: twinsen68.raphsreef
-    version: "${app_version}"
-    
+    name: twinsen68.raphsreef  # Identifiant du projet.
+    version: "${app_version}"  # Version du projet définie dans les substitutions.
+
 # Enable logging
-logger:
-  level: "${logger}"
+logger:  # Active les journaux pour surveiller l'état du périphérique.
+  level: "${logger}"  # Définit le niveau des journaux (exemple : DEBUG).
 
-api:
+api:  # Active l'API ESPHome pour interagir avec Home Assistant.
 
-ota:
-  - platform: esphome
+ota:  # Permet les mises à jour Over-The-Air.
+  - platform: esphome  # Utilise la plateforme OTA d'ESPHome.
 
-wifi:
-  ssid: "Votre_SSID"  # Réseau principal
-  password: "Votre_Mot_De_Passe"  # Mot de passe du réseau principal
+wifi:  # Configuration du Wi-Fi.
+  ssid: "Votre_SSID"  # Nom du réseau principal.
+  password: "Votre_Mot_De_Passe"  # Mot de passe du réseau principal.
 
-  ap:
-    ssid: "Raphreef_Recovery"  # Nom du réseau Access Point en mode secours
-    password: "MotDePasse_AP"  # Mot de passe pour l'accès direct
+  ap:  # Configuration pour un mode Access Point de secours.
+    ssid: "Raphreef_Recovery"  # Nom du réseau en mode AP.
+    password: "MotDePasse_AP"  # Mot de passe pour se connecter au mode AP.
 
-captive_portal:
+captive_portal:  # Active un portail captif pour simplifier la configuration initiale du réseau.
 
-web_server:
-#   version: 3
-  
-improv_serial:
+web_server:  # Active un serveur Web intégré.
+#   version: 3  # Spécifie une version particulière (commentée ici).
+
+improv_serial:  # Permet une configuration Wi-Fi via la liaison série.
 
 # i2c Pins
-i2c:
-  sda: ${sdaPin}
-  scl: ${sclPin}
-  scan: true
-  id: bus_a
+i2c:  # Configure le bus I2C pour la communication avec les périphériques.
+  sda: ${sdaPin}  # Broche SDA définie dans les substitutions.
+  scl: ${sclPin}  # Broche SCL définie dans les substitutions.
+  scan: true  # Scanne automatiquement les périphériques connectés.
+  id: bus_a  # Identifiant du bus I2C.
 
 # Internal Blue LED
 light:
-  - platform: status_led
-    id: led_interne
+  - platform: status_led  # Utilise la LED intégrée comme témoin d'état.
+    id: led_interne  # Identifiant unique pour cette LED.
     pin:
-      number: GPIO2
-      ignore_strapping_warning: true
+      number: GPIO2  # Pin utilisée pour contrôler la LED.
+      ignore_strapping_warning: true  # Ignore les avertissements liés à cette pin.
 
-sensor:
-  # Internal Temp.
-  - platform: internal_temperature
+sensor:  # Déclaration des capteurs physiques et virtuels.
+  - platform: internal_temperature  # Capteur de température interne à l'ESP32.
     name: "Température interne"
 
-  # Wifi Signal 
-  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+  - platform: wifi_signal  # Mesure la force du signal Wi-Fi en dB.
     name: "WiFi - Signal dB"
-    disabled_by_default: true
+    disabled_by_default: true  # N'est pas affiché par défaut dans l'interface.
     id: wifi_signal_db
-    update_interval: 60s
-    entity_category: "diagnostic"
+    update_interval: 60s  # Met à jour toutes les 60 secondes.
+    entity_category: "diagnostic"  # Catégorie d'entité pour les informations système.
 
-  # Wifi %
-  - platform: copy # Reports the WiFi signal strength in %
-    source_id: wifi_signal_db
+  - platform: copy  # Transforme le signal Wi-Fi dB en pourcentage.
+    source_id: wifi_signal_db  # Utilise le capteur précédent comme source.
     name: "WiFi force du signal"
     filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "%"
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);  # Convertit dB en pourcentage.
+    unit_of_measurement: "%"  # Unité affichée.
     entity_category: "diagnostic"
 
-  # Uptime sensor
-  - platform: uptime
+  - platform: uptime  # Mesure la durée de fonctionnement de l'appareil.
     name: Dernier démarage 
 
-  # Internal Magnetic Sensor
-  - platform: esp32_hall
+  - platform: esp32_hall  # Capteur magnétique intégré à l'ESP32.
     name: "ESP32 Hall"
     entity_category: "diagnostic"
 
-  # of I2C devices connected
-  - platform: template
+  - platform: template  # Compte le nombre d'appareils I2C connectés.
     name: "I2C Devices Connected"
     id: i2c_devices
     icon: mdi:integrated-circuit-chip
     entity_category: "diagnostic"
-    # disabled_by_default: true
-    lambda: |-
+    lambda: |-  # Fonction pour scanner les adresses I2C connectées.
       byte error, address;
       int nDevices;
       nDevices = 0;
@@ -109,13 +101,11 @@ sensor:
       }
       return nDevices;
 
-binary_sensor:
-  # API Status
-  - platform: status
+binary_sensor:  # Déclaration des capteurs binaires (ON/OFF).
+  - platform: status  # Capteur pour surveiller l'état général de l'ESPHome.
     name: "Status"
 
-text_sensor:
-  # Hostname
+text_sensor:  # Capteurs de type texte pour les informations système.
   - platform: template
     name: "Nom du device"
     id: hostname
@@ -124,8 +114,7 @@ text_sensor:
       return {"${name}"};
     entity_category: "diagnostic"
 
-  # Wifi Info
-  - platform: wifi_info
+  - platform: wifi_info  # Informations détaillées sur la connexion Wi-Fi.
     ip_address:
       name: IP Address
       icon: mdi:ip-network
@@ -140,43 +129,39 @@ text_sensor:
       name: Address Mac
       icon: mdi:chip
 
-button:
-  # Soft Restart
-  - platform: restart
+button:  # Déclaration des boutons virtuels pour diverses actions.
+  - platform: restart  # Bouton pour redémarrer l'appareil.
     id: restart_button
     name: "Rédemarer"
 
-  # Factory Reset
-  - platform: factory_reset
+  - platform: factory_reset  # Réinitialise l'appareil aux paramètres d'usine.
     name: Réintial. Usine 
     disabled_by_default: true
 
-  # Safe Mode Restart
-  - platform: safe_mode
+  - platform: safe_mode  # Active le mode sécurisé.
     name: "Safe Mode"
     id: restart_safe
 
-  # Shutdown
-  - platform: shutdown
+  - platform: shutdown  # Permet d'éteindre l'appareil.
     name: "Eteindre"
     disabled_by_default: true
     id: shutdown_button
 
-time:
+time:  # Configuration pour obtenir l'heure via SNTP.
   - platform: sntp
-    id: sntp_time  # Identifiant SNTP pour les automatisations
+    id: sntp_time
     servers:
       - 0.pool.ntp.org
       - 1.pool.ntp.org
-    timezone: "Europe/Paris"  # Fuseau horaire
+    timezone: "Europe/Paris"  # Fuseau horaire.
 
-interval:
-  - interval: 5min  # Vérifie toutes les 5 minutes
+interval:  # Automatisation basée sur un intervalle de temps.
+  - interval: 5min
     then:
       - if:
           condition:
-            wifi.connected: false  # Déclenche si le Wi-Fi est déconnecté
+            wifi.connected: false  # Vérifie la connexion Wi-Fi.
           then:
-            - logger.log: "Wi-Fi non connecté. Redémarrage en cours..."  # Log l'événement
-            - delay: 30s  # Attente avant redémarrage
-            - reboot:  # Redémarrage de l'ESP
+            - logger.log: "Wi-Fi non connecté. Redémarrage en cours..."  # Ajoute un message dans les logs.
+            - delay: 30s  # Attente avant le redémarrage.
+            - reboot:  # Redémarre l'ESP.
