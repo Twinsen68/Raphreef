@@ -1,21 +1,19 @@
-substitutions:
+substitutions:  # Déclare des variables globales pour simplifier la configuration et centraliser les modifications.
   # names
-  name: "raphsreef"
-  friendly_name: "raphsreef"
+  name: "raphsreef"  # Identifiant unique pour le nœud ESPHome.
+  friendly_name: "raphsreef"  # Nom convivial pour afficher l'appareil dans Home Assistant.
   # App Version - Updated: 6/2024
-  app_version: "24.8.1"
+  app_version: "24.8.1"  # Version de l'application ou du firmware, utile pour le suivi des mises à jour.
 
-packages:
-  device_base: !include common/device_base.yaml
-  raphsreef: !include common/raphsreef.yaml
-  dallas: !include common/temperature_dallas.yaml
-  optical: !include common/optical.yaml
-  ezo_ph: !include common/ezo_ph.yaml
-  ezo_ec: !include common/ezo_ec.yaml
-  ezo_orp: !include common/ezo_orp.yaml
-  substitutions: !include common/substitutions.yaml
-  temperature_dallas: !include common/temperature_dallas.yaml
-  ota_https: !include common/ota_https.yaml
-  debug: !include common/debug.yaml
-  binary: !include common/binary.yaml
-  binary_input: !include common/binary_input.yaml
+packages:  # Inclut des fichiers YAML externes pour modularité et réutilisation.
+  device_base: !include common/device_base.yaml  # Contient les configurations de base du périphérique.
+  raphsreef: !include common/raphsreef.yaml  # Fichier spécifique au projet raphsreef.
+  dallas: !include common/temperature_dallas.yaml  # Gestion des capteurs de température Dallas (DS18B20, etc.).
+  optical: !include common/optical.yaml  # Gestion des capteurs optiques (par exemple, pour mesurer le niveau d'eau).
+  ezo_ph: !include common/ezo_ph.yaml  # Intègre les sondes pH EZO pour surveiller l'acidité de l'eau.
+  ezo_ec: !include common/ezo_ec.yaml  # Intègre les sondes EZO pour la conductivité électrique (EC).
+  ezo_orp: !include common/ezo_orp.yaml  # Intègre les sondes EZO pour le potentiel rédox (ORP).
+  substitutions: !include common/substitutions.yaml  # Centralise les variables réutilisées entre les fichiers.
+  temperature_dallas: !include common/temperature_dallas.yaml  # Référence répétée pour assurer la modularité.
+  ota_https: !include common/ota_https.yaml  # Active les mises à jour OTA (Over-The-Air) sécurisées via HTTPS.
+  debug: !include common/debug.yaml  # Inclut une configuration pour le débogage (logs détaillés, etc.).

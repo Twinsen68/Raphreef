@@ -1,23 +1,23 @@
 text_sensor: 
   # raphsreef Version
   - platform: template
-    name: "raphsreef Version"
-    id: raphsreef_version
-    icon: mdi:update
-    update_interval: '365days'
+    name: "raphsreef Version"  # Nom affiché dans Home Assistant.
+    id: raphsreef_version  # Identifiant unique.
+    icon: mdi:update  # Icône pour représenter les mises à jour ou versions.
+    update_interval: '365days'  # Mise à jour annuelle (inutile de changer fréquemment la version).
     lambda: |-
-      return {"${app_version}"};
-    entity_category: "diagnostic"
+      return {"${app_version}"};  # Retourne la version définie dans les substitutions.
+    entity_category: "diagnostic"  # Classé comme un diagnostic dans Home Assistant.
 
   # GitHub Project URL
   - platform: template
-    name: GitHub
-    id: github
-    icon: mdi:github
-    update_interval: '365days'
+    name: GitHub  # Nom affiché dans Home Assistant.
+    id: github  # Identifiant unique.
+    icon: mdi:github  # Icône du logo GitHub.
+    update_interval: '365days'  # Mise à jour annuelle (le lien ne change pas souvent).
     lambda: |-
-      return {"github.com/twinsen68/raphreef"};
-    entity_category: "diagnostic"
+      return {"github.com/twinsen68/raphreef"};  # Retourne l'URL du dépôt GitHub.
+    entity_category: "diagnostic"  # Classé comme un diagnostic.
 
   # Déclaration d'un capteur textuel pour afficher l'heure actuelle synchronisée via SNTP
   - platform: template
