@@ -80,28 +80,6 @@ text_sensor:
     id: result_orp  # Identifiant unique pour ce capteur.
     # disabled_by_default: true  # Option pour désactiver par défaut (commentée ici).
 
-
-button:
-  # Read ORP Probe
-  - platform: template
-    name: ORP - Lire
-    id: read_orp
-    icon: mdi:read
-    entity_category: "Config"
-    # disabled_by_default: true
-    on_press:
-      then:
-        - lambda: |-
-            byte error;
-            id(orp_ezo).send_custom("R");
-            error = Wire.endTransmission();
-            if (error == 0) {
-              id(orp_ezo).send_custom("R");
-            }
-            else {
-              ESP_LOGW("custom_orp_read", "No ORP sensor detected at address: ${addORP}!!");
-            }
-
 button:
   - platform: template
     name: ORP - Lire  # Bouton pour forcer une lecture manuelle de la sonde ORP.

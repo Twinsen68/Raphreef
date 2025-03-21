@@ -140,28 +140,6 @@ text_sensor:
     id: result_ph  # Identifiant unique.
     # disabled_by_default: true  # Peut être activé/désactivé selon le besoin.
 
-
-button:
-  # Read pH Probe
-  - platform: template
-    name: pH - Lire
-    id: read_ph
-    icon: mdi:read
-    entity_category: "Config"
-    # disabled_by_default: true
-    on_press:
-      then:
-        - lambda: |-
-            byte error;
-            id(ph_ezo).send_custom("R");
-            error = Wire.endTransmission();
-            if (error == 0) {
-              id(ph_ezo).send_custom("R");
-            }
-            else {
-              ESP_LOGW("custom_ph_read", "Pas de Capteur PH à cette adresse: ${addPH}!!");
-            }
-
 button:
   # Bouton pour lire manuellement les données de la sonde.
   - platform: template

@@ -1,7 +1,3 @@
-substitutions:  # Déclare des variables globales pour une réutilisation plus simple dans le fichier.
-  name: raphsreef  # Identifiant unique pour votre nœud ESPHome.
-  friendly_name: raphsreef  # Nom convivial affiché dans Home Assistant.
-
 esp32:  # Configuration spécifique à la carte ESP32.
   board: esp32dev  # Modèle de carte ESP32 (ici, une carte de développement générique).
   framework:

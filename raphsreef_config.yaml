@@ -1,14 +1,6 @@
-substitutions:  # Déclare des variables globales pour simplifier la configuration et centraliser les modifications.
-  # names
-  name: "raphsreef"  # Identifiant unique pour le nœud ESPHome.
-  friendly_name: "raphsreef"  # Nom convivial pour afficher l'appareil dans Home Assistant.
-  # App Version - Updated: 6/2024
-  app_version: "24.8.1"  # Version de l'application ou du firmware, utile pour le suivi des mises à jour.
-
 packages:  # Inclut des fichiers YAML externes pour modularité et réutilisation.
   device_base: !include common/device_base.yaml  # Contient les configurations de base du périphérique.
   raphsreef: !include common/raphsreef.yaml  # Fichier spécifique au projet raphsreef.
-  dallas: !include common/temperature_dallas.yaml  # Gestion des capteurs de température Dallas (DS18B20, etc.).
   optical: !include common/optical.yaml  # Gestion des capteurs optiques (par exemple, pour mesurer le niveau d'eau).
   ezo_ph: !include common/ezo_ph.yaml  # Intègre les sondes pH EZO pour surveiller l'acidité de l'eau.
   ezo_ec: !include common/ezo_ec.yaml  # Intègre les sondes EZO pour la conductivité électrique (EC).

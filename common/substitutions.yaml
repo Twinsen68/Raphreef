@@ -1,7 +1,16 @@
 substitutions:
+  # Import Config
+  import_config: "true"  # Active ou désactive l'importation de configurations externes.
+  # Logger Level - Can use VERBOSE for more information in Logs
+  # I2C pins
+
+  # Déclare des variables globales pour simplifier la configuration et centraliser les modifications.
+  # names
+  name: "raphsreef"  # Identifiant unique pour le nœud ESPHome.
+  friendly_name: "raphsreef"  # Nom convivial pour afficher l'appareil dans Home Assistant.
+  # App Version - Updated: 6/2024
+  app_version: "24.8.1"  # Version de l'application ou du firmware, utile pour le suivi des mises à jour.
   # Noms pour le périphérique
-  name: "raphsreef"  # Identifiant unique pour le nœud.
-  friendly_name: "RaphsReef"  # Nom convivial utilisé dans Home Assistant.
 
   # Niveau du journal
   logger: "DEBUG"  # Définit le niveau de détail des logs (VERBOSE pour un débogage complet).

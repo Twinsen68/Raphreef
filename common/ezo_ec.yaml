@@ -129,25 +129,6 @@ text_sensor:  # Déclare des capteurs affichant du texte pour des diagnostics ou
       return {"Inconnu"};  # Message par défaut si aucune condition n'est remplie.
     icon: mdi:water  # Icône représentant l'état de la densité.
 
-button:
-  - platform: template
-    name: "EC - Lire"  # Bouton pour forcer une lecture des données EC.
-    icon: mdi:read  # Icône indiquant une action de lecture.
-    id: read_ec  # Identifiant unique du bouton.
-    entity_category: "Config"  # Catégorie utilisée pour organiser dans Home Assistant.
-    on_press:
-      then:
-        - lambda: |-
-            byte error;  # Variable pour capturer les erreurs.
-            Wire.beginTransmission(${addEC});  # Démarre une transmission I2C à l'adresse du capteur.
-            error = Wire.endTransmission();  # Termine la transmission et capture le code d'erreur.
-            if (error == 0) {  # Vérifie si aucune erreur.
-              id(ec_ezo).send_custom("R");  # Envoie la commande de lecture au capteur.
-            }
-            else {
-              ESP_LOGW("custom_conductivity_read", "Pas de capteur EC à cette adresse: ${addEC}!");  # Log si le capteur n'est pas trouvé.
-            }
-
   - platform: template
     name: "EC - Commande selectionée envoyée"  # Bouton pour envoyer une commande EZO préconfigurée.
     id: send_selected_ec  # Identifiant unique du bouton.
@@ -226,25 +207,6 @@ binary_sensor:
       float density = id(sensor_specific_gravity).state;  # Récupère l'état de la densité spécifique.
       return (density < 1.021 || density > 1.026);  # Retourne vrai si la densité est en dehors des limites.
     device_class: problem  # Classe "problème", affichée dans Home Assistant comme une alerte.
-
-button:
-  # Commande pour lire la sonde
-  - platform: template
-    name: "EC - Lire"  # Bouton pour forcer une lecture de la sonde.
-    icon: mdi:read  # Icône représentant l'action de lecture.
-    id: read_ec  # Identifiant unique.
-    entity_category: "Config"  # Catégorie "Config" dans Home Assistant.
-    on_press:  # Action déclenchée lorsque le bouton est pressé.
-      then:
-        - lambda: |-
-            byte error;  # Variable pour détecter les erreurs.
-            Wire.beginTransmission(${addEC});  # Démarre une communication I2C avec l'adresse du capteur.
-            error = Wire.endTransmission();  # Termine la transmission et vérifie les erreurs.
-            if (error == 0) {  # Si aucune erreur n'est détectée.
-              id(ec_ezo).send_custom("R");  # Envoie une commande de lecture à la sonde.
-            } else {
-              ESP_LOGW("custom_conductivity_read", "Pas de capteur EC à cette adresse: ${addEC}!");  # Ajoute un avertissement dans les logs si le capteur n'est pas détecté.
-            }
 
 button:
   # Commande pour lire la sonde
